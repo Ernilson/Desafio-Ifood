@@ -4,6 +4,8 @@ import br.com.projetoIfood.domain.Category.Category;
 import br.com.projetoIfood.domain.Product.Product;
 import br.com.projetoIfood.domain.Product.ProductDTO;
 import br.com.projetoIfood.repository.ProductRepository;
+import br.com.projetoIfood.service.aws.AwsSnsService;
+import br.com.projetoIfood.service.aws.MessageDTO;
 import br.com.projetoIfood.utils.exceptions.CategoryNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -13,13 +15,17 @@ import java.util.NoSuchElementException;
 @Service
 public class ProductService {
 
-    private ProductRepository productRepository;
+    private final ProductRepository productRepository;
 
-    private CategoryService categoryService;
+    private final CategoryService categoryService;
 
-    public ProductService(ProductRepository productRepository, CategoryService categoryService){
+    private final AwsSnsService snsService;
+
+    public ProductService(ProductRepository productRepository, CategoryService categoryService,
+                          AwsSnsService snsService){
         this.productRepository = productRepository;
         this.categoryService = categoryService;
+        this.snsService = snsService;
     }
 
     public List<Product> getAll(){
@@ -33,6 +39,7 @@ public class ProductService {
         Product newProduct = new Product(productDTO);
         newProduct.setCategory(category);
         this.productRepository.save(newProduct);
+        this.snsService.publish(new MessageDTO(newProduct.getOwnerId()));
         return newProduct;
     }
 
@@ -49,6 +56,7 @@ public class ProductService {
         if (!(produtctDTO.price() == null)) newProduct.setPrice(produtctDTO.price());
 
         this.productRepository.save(newProduct);
+        this.snsService.publish(new MessageDTO(newProduct.getOwnerId()));
         return newProduct;
     }
 
