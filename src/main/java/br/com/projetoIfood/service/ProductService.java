@@ -7,6 +7,7 @@ import br.com.projetoIfood.repository.ProductRepository;
 import br.com.projetoIfood.service.aws.AwsSnsService;
 import br.com.projetoIfood.service.aws.MessageDTO;
 import br.com.projetoIfood.utils.exceptions.CategoryNotFoundException;
+import br.com.projetoIfood.utils.exceptions.ProductNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -33,30 +34,30 @@ public class ProductService {
     }
 
     public Product gravarProduto(ProductDTO productDTO){
-        Category category = this.categoryService.findById((productDTO.categoryId()))
+        this.categoryService.findById((productDTO.categoryId()))
                 .orElseThrow(() -> new NoSuchElementException("Categoria não encontrada"));
-
         Product newProduct = new Product(productDTO);
-        newProduct.setCategory(category);
+
         this.productRepository.save(newProduct);
-        this.snsService.publish(new MessageDTO(newProduct.getOwnerId()));
+        this.snsService.publish(new MessageDTO(newProduct.toString()));
         return newProduct;
     }
 
     public Product update(String id, ProductDTO produtctDTO){
         Product newProduct = this.productRepository.findById(id)
-                .orElseThrow(CategoryNotFoundException::new);
+                .orElseThrow(ProductNotFoundException::new);
 
         if (produtctDTO.categoryId() != null){
             this.categoryService.findById(produtctDTO.categoryId())
-                    .ifPresent(newProduct::setCategory);
+                    .orElseThrow(CategoryNotFoundException::new);
+            newProduct.setCategory(produtctDTO.categoryId());
         }
         if (!produtctDTO.title().isEmpty()) newProduct.setTitle(produtctDTO.title());
         if (!produtctDTO.description().isEmpty()) newProduct.setDescription(produtctDTO.description());
         if (!(produtctDTO.price() == null)) newProduct.setPrice(produtctDTO.price());
 
         this.productRepository.save(newProduct);
-        this.snsService.publish(new MessageDTO(newProduct.getOwnerId()));
+        this.snsService.publish(new MessageDTO(newProduct.toString()));
         return newProduct;
     }
 

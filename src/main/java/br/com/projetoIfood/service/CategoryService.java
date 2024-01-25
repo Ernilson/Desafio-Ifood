@@ -2,6 +2,8 @@ package br.com.projetoIfood.service;
 
 import br.com.projetoIfood.domain.Category.Category;
 import br.com.projetoIfood.domain.Category.CategoryDTO;
+import br.com.projetoIfood.service.aws.AwsSnsService;
+import br.com.projetoIfood.service.aws.MessageDTO;
 import br.com.projetoIfood.utils.exceptions.CategoryNotFoundException;
 import br.com.projetoIfood.repository.CategoryRepository;
 import org.springframework.stereotype.Service;
@@ -14,13 +16,18 @@ public class CategoryService {
 
     private final CategoryRepository repository;
 
-    public CategoryService(CategoryRepository repository){
+    private final AwsSnsService snsService;
+
+    public CategoryService(CategoryRepository repository,
+                           AwsSnsService snsService){
         this.repository = repository;
+        this.snsService = snsService;
     }
 
     public Category gravar(CategoryDTO dto){
         Category newCategory = new Category(dto);
         this.repository.save(newCategory);
+        this.snsService.publish(new MessageDTO(newCategory.toString()));
         return newCategory;
     }
 
@@ -29,6 +36,7 @@ public class CategoryService {
         if (!categoryDTO.title().isEmpty()) category.setTitle(categoryDTO.title());
         if (!categoryDTO.description().isEmpty()) category.setDescription(categoryDTO.description());
         this.repository.save(category);
+        this.snsService.publish(new MessageDTO(category.toString()));
         return category;
     }
 
